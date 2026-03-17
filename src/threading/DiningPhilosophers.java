@@ -39,11 +39,11 @@ public class DiningPhilosophers {
             forks[rightFork].acquire();
             System.out.println("Philosopher " + id + " picked up right fork " + rightFork);
 
-            // --- EATING (Critical Section) ---
+            // EATING (Critical Section) 
             System.out.println("🍽️ Philosopher " + id + " is EATING!");
             Thread.sleep(1000);
 
-            // --- PUT FORKS DOWN ---
+            //  PUT FORKS DOWN 
             forks[leftFork].release();
             forks[rightFork].release();
             System.out.println("Philosopher " + id + " put down both forks.");

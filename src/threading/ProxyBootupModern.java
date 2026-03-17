@@ -3,7 +3,7 @@ package threading;
 import java.util.concurrent.CompletableFuture;
 
 public class ProxyBootupModern {
-    public static void main(String[] args) {
+     void main(String[] args) {
         System.out.println("🚀 DispatchedProxy Booting Up (Modern Way)...\n");
         long startTime = System.currentTimeMillis();
 
