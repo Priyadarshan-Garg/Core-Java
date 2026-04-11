@@ -2,18 +2,17 @@ package threading;
 
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class BoundedBlockingQueue<T> {
+public class BoundedBlockingQueueBasic<T> {
 
     private final int capacity;
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition notFull = lock.newCondition();
     private final Condition notEmpty = lock.newCondition();
     private final Queue<T> queue = new LinkedList<>();
-    public BoundedBlockingQueue(int capacity) {
+    public BoundedBlockingQueueBasic(int capacity) {
         if (capacity <= 0) throw new IllegalArgumentException("Capacity must be > 0");
         this.capacity = capacity;
     }
