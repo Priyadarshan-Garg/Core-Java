@@ -2,19 +2,22 @@ package threading;
 
 import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 
 public class ThreadPool<T> {
-
+    public volatile boolean isShutdown = false;
     class WokerThread extends Thread {
         @Override
         public void run() {
             while (true) {
+                if(isShutdown && queue.isEmpty()) {
+                    return;
+                }
                 // Chalta reh
                 try {
                     Runnable task = queue.take();
                     task.run();
                 } catch (InterruptedException e) {
-                    return; // nikal jao kaam ho gya
                 }
             }
         }
@@ -35,13 +38,23 @@ public class ThreadPool<T> {
         }
     }
 
+    public void shutDownNow() {
+        for (WokerThread thread : list) {
+            thread.interrupt();
+        }
+    }
     public void shutDown() {
+        isShutdown = true;
         for (WokerThread thread : list) {
             thread.interrupt();
         }
     }
 
     public void submit(Runnable task) {
+        if (isShutdown) {
+            System.out.println("Pool is shutting down. Task rejected.");
+            return;
+        }
         try {
             queue.put(task);
         } catch (InterruptedException e) {
@@ -54,8 +67,7 @@ public class ThreadPool<T> {
         for (int i = 0; i < 5; i++) {
             threadPool.submit(() -> System.out.println("Printed by : " + Thread.currentThread().getName()));
         }
-
-        threadPool.shutDown();
+        threadPool.shutDown(); // polite shutdown
     }
 
 }

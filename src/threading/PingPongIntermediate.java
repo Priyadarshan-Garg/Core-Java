@@ -13,6 +13,7 @@ public class PingPongIntermediate {
             int rem = count % 3;
             if(rem == myTurn) {
                 System.out.println("Printed by : " + Thread.currentThread().getName() + " " + count++);
+
                 notifyAll();
             }
             else {
