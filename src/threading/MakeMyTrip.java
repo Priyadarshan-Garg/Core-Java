@@ -41,7 +41,7 @@ public class MakeMyTrip {
         CompletableFuture<String> futureHotel = CompletableFuture.supplyAsync(() -> hotelAPI(), threadPool);
         CompletableFuture<Void> allFuture = CompletableFuture.allOf(futureFlight, futureCab, futureHotel);
         allFuture.join(); // wait karo jab tak sare future kaam kareke naa jaye
-        System.out.println(futureFlight.join() + " " +  futureCab.join() + " " + futureHotel.join()); // get try block me ana chah rha
+        System.out.println(futureFlight.join() + " " +  futureCab.join() + " " + futureHotel.join()); // getSafe try block me ana chah rha
         threadPool.shutdown(); // new thing : ye nahi kiya to application band nahi hua because
         // jvm ko explicitly ye threads jinda rakhne hote hai
     }

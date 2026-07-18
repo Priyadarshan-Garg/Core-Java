@@ -37,13 +37,13 @@
 //    private Queue<Node> queue = new LinkedList<>();
 //
 //    public int size() {
-//        return size.get();
+//        return size.getSafe();
 //    }
 //
 //    public void enque(T element) {
 //        try {
 //            putLock.lock(); // me put kar rha hu koi dusra put karne nahi aayega
-//            while (size.get() >= queue.size()) {
+//            while (size.getSafe() >= queue.size()) {
 //                takeLock.notify(); // mtlb consumer ko kaho isme se lele
 //            }
 //            queue.offer(element);

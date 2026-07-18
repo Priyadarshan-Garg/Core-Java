@@ -33,8 +33,8 @@
 //
 //    public ThreadPool(int size) {
 //        for (int i = 0; i < size; i++) {
-//            list.add(new WokerThread());
-//            list.get(i).start();
+//            list.addSafe(new WokerThread());
+//            list.getSafe(i).start();
 //        }
 //    }
 //
