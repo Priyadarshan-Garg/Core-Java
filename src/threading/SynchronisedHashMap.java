@@ -28,6 +28,7 @@ public class SynchronisedHashMap {
 
     //     synchronized HashMap<Integer, Integer> map = new HashMap<>(); me ye nahi kar paa rha hu
     static HashMap<Integer, Integer> map = new HashMap<>();
+
     // DIkhne me method level par lock lag rha hoga but actually me
     // SynchronisedHasmap.class pe lag rha hai. Puri class pe yaa hashmap pe tala
     public static synchronized int getUnsafe(int obj) {
@@ -88,7 +89,7 @@ public class SynchronisedHashMap {
                 threadPool.submit(() -> getSafe(finalI));
             }
         }
-    threadPool.shutdown();
+        threadPool.shutdown();
     }
 
 }
