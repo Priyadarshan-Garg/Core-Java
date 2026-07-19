@@ -24,7 +24,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
      Ab na koi naya reader andar aa sakta hai, na koi aur writer.
  */
 
-public class SynchronisedHashMap {
+public class ConcurrentHashMapBasic {
 
     //     synchronized HashMap<Integer, Integer> map = new HashMap<>(); me ye nahi kar paa rha hu
     static HashMap<Integer, Integer> map = new HashMap<>();
