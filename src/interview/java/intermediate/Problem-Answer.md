@@ -1,21 +1,15 @@
 ## 1. How does HashSet know that the second 10 is already present?
 
 ```java
-    HashSet<Integer> set = new HashSet<>();
-    
-    set.
-
-add(10);
-    set.
-
-add(10);
-    set.
-
-add(20);
-    
-    System.out.
-
-println(set.size());
+    class Demo {
+    public static void main(String[] args) {
+        HashSet<Integer> set = new HashSet<>();
+        set.add(10);
+        set.add(10);
+        set.add(20);
+        System.out.println(set.size());
+    }
+}
 ```
 
 HashSet is basically a thin wrapper around HashMap.
@@ -31,9 +25,7 @@ becomes roughly
 ```
 
 ```java
-    obj1.hashCode() ==obj2.
-
-hashCode()
+    obj1.hashCode() ==obj2.hashCode()
 ```
 
 is possible so java Checks hashCode(). If bucket differs: **Not present**. If bucket is same: java calls **equals()** to
@@ -98,10 +90,8 @@ Now overriding **equals** so when we do
 
 ```java
     Student s1 = new Student(1);
-Student s2 = new Student(1);
-    s1.
-
-equals(s2)
+    Student s2 = new Student(1);
+    s1.equals(s2)
 ```
 
 This returns true because Id match
@@ -109,22 +99,15 @@ Now If we do
 
 ```java
     HashSet<Student> set = new HashSet<>();
-    
-    set.
-
-add(s1);
-    set.
-
-add(s2);
+    set.add(s1);
+    set.add(s2);
 ```
 
 equals() returns true, so only one object should exist. Not necessarily.
 
 ```java
-    s1.hashCode() =123
-        s2.
-
-hashCode() =987
+    s1.hashCode() = 123
+    s2.hashCode() = 987
 ```
 
 So they are treated as different objects and assigned to different buckets.
@@ -139,27 +122,18 @@ So they are treated as different objects and assigned to different buckets.
 
 ```java
     HashMap<Student, String> map = new HashMap<>();
-
-Student s = new Student(1);
-    
-    map.
-
-put(s, "PD");
-
-s.id =2;
-
-        System.out.
-
-println(map.get(s));
+    Student s = new Student(1);
+    map.put(s, "PD");
+    s.id =2;
+    System.out.println(map.get(s));
 ```
 
 Assume **hashCode() = id**
 HashMap Stores
 
 ```java
- bucket(1)
-
-Student(1) ->"PD"
+     bucket(1)
+     Student(1) ->"PD"
 ```
 
 when doing s.id = 2 You did not reinsert the object. You only mutated it.
@@ -171,29 +145,16 @@ When you do **map.get(s)** It searches the bucket not entire table and bucket 2 
 
 ```java
     List<Integer> list = new ArrayList<>();
+    list.add(1);
+    list.add(2);
+    list.add(3);
     
-    list.
-
-add(1);
-    list.
-
-add(2);
-    list.
-
-add(3);
-    
-    for(
-Integer x :list){
+    for(Integer x :list) {
         if(x ==2){
-        list.
-
-remove(x);
+        list.remove(x);
         }
-                }
-
-                System.out.
-
-println(list);
+    }
+     System.out.println(list);
 ```
 
 So the enhanced for loop roughly becomes
@@ -201,28 +162,24 @@ So the enhanced for loop roughly becomes
 ```java
     Iterator<Integer> it = list.iterator();
     
-    while(it.
-
-hasNext()){
-Integer x = it.next();
+    while(it.hasNext()){
+    Integer x = it.next();
         ...
-                }
+    }
 ```
 
 Arraylist maintains a modCount as internal count so when we
 
 ```java
     add()
-
-remove()
-
-clear()
+    remove()
+    clear()
 ```
 
 java increments it. And the iterator stores **expectedModCount** During it checks
 
 ```java
-    expectedModCount ==modCount
+    expectedModCount == modCount
 ```
 
 Now they are not it equal and when these methods are called **it.next** it throws  **ConcurrentModificationException**.
@@ -240,15 +197,12 @@ One way is
 ```java
     List<Integer> result = new ArrayList<>();
     
-    for(
-Integer x :list){
+    for(Integer x :list){
         if(x %2!=0){
-        result.
-
-add(x);
+        result.add(x);
         }
-                }
-list =result;
+    }
+    list = result;
 ```
 
 **Follow up** :How do you remove while iterating?
@@ -279,16 +233,16 @@ It will print **"finally"**.
 ```java
     try{
         return 10;
-        }
-        finally{
+    }
+    finally{
         return 20;
-        }
+    }
 ```
 
 When we do **return 10** it does not leaves method immediately. JVM roughly does
 
 ```java
-    result =10;
+    result = 10;
 ```
 
 and before returning result finally executes. The finally block doesn't just run. It overrides the pending return.
