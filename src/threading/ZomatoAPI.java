@@ -1,5 +1,6 @@
 package threading;
 
+import java.time.LocalDateTime;
 import java.util.Random;
 import java.util.concurrent.*;
 
@@ -9,13 +10,15 @@ class User {
         this.userNumber = id;
     }
 }
-
+/*
+    Problem : Make an api that process 3 users payment request concurrently
+ */
 public class ZomatoAPI {
     private static final BlockingQueue<User> blockingQueue =  new ArrayBlockingQueue<>(100000); //itne users aa jao hum handle kar lenge
     public static final Semaphore sempahore = new Semaphore(3);
     public static void makePayment(String user, String threadName) {
         try{
-            System.out.println(user + " is making Payment");
+            System.out.println(LocalDateTime.now() + " " + user + " is making Payment" + "with thread " + Thread.currentThread().getName());
             Thread.sleep(200);
             System.out.println("Payment Received");
         }
