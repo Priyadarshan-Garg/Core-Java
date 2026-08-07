@@ -272,3 +272,126 @@ preventing indefinite waiting.
 ---
 
 ## 20. What is Virtual Memory? Why do modern operating systems use it instead of letting every process access physical RAM directly?
+
+Virtual Memory is a memory management technique that gives every process its own virtual address space instead of
+exposing the actual physical RAM addresses.
+
+When a process accesses memory, it generates virtual addresses. These addresses are translated into physical RAM
+addresses by the Memory Management Unit (MMU) with the help of the operating system's page tables.
+
+Modern operating systems use Virtual Memory because it provides process isolation, security, and efficient memory
+management. Each process believes it has its own private memory, preventing it from directly accessing or modifying
+another process's memory.
+
+It also simplifies programming because applications work with virtual addresses instead of physical addresses.
+Additionally, Virtual Memory allows the operating system to utilize RAM more efficiently and support techniques such as
+paging.
+
+Without Virtual memory
+
+```text
+               Physical RAM
+
+    +----------------------------------+
+    | Chrome | VS Code | IntelliJ | ...|
+    +----------------------------------+
+
+    Applications know actual RAM addresses.
+```
+
+Problems :
+❌ Any process could read another process's memory.
+❌ Any process could overwrite another process's data.
+❌ Memory allocation becomes difficult due to fragmentation.
+❌ Programs would need to know physical memory addresses.
+
+With Virtual Memory :
+
+```text
+Chrome Process
+
+Virtual Address Space
+
+    0x0000
+    │
+    │
+    │
+    └─────────────► MMU ─────────────► Physical RAM
+                     │
+                     │ (uses Page Table)
+                     ▼
+                Physical Address
+```
+
+Memory transition flow
+
+```text
+      Application
+            │
+            ▼
+      Virtual Address
+            │
+            ▼
+      Memory Management Unit (MMU)
+            │
+            ▼
+      Page Table Lookup
+            │
+            ▼
+      Physical Address
+            │
+            ▼
+           RAM
+```
+
+Why do we need Virtual Memory?
+
+* Process Isolation: One process cannot directly access another process's memory.
+* Security: Prevents unauthorized memory access.
+* Simplified Programming: Programs use virtual addresses instead of physical ones.
+* Efficient Memory Management: The OS can map memory flexibly and manage RAM effectively.
+* Foundation for Paging: Enables efficient allocation and use of physical memory.
+
+---
+
+## 21. You mentioned that the MMU uses a Page Table to translate virtual addresses into physical addresses. What is a Page Table, and how does address translation work?
+
+A Page Table is a data structure maintained by the operating system that stores the mapping between a process's virtual
+pages and physical frames in RAM.
+
+Whenever a process generates a virtual address, the Memory Management Unit (MMU) consults the page table to determine
+the corresponding physical address.
+
+If a valid mapping exists, the MMU translates the virtual address into the physical address and accesses the required
+location in RAM. The CPU itself always works with virtual addresses; the MMU performs the translation transparently
+before the memory access."
+
+
+---
+
+## 22. Suppose the MMU looks into the page table and does not find the required page in RAM. What happens then?
+
+CPU does something like this 
+```text
+      CPU accesses a virtual address.
+                 ⬇️
+      MMU checks the page table.
+                ⬇️
+      Page not present.
+                ⬇️
+      Page Fault interrupt is generated.
+                ⬇️
+      OS finds the page on disk.
+                ⬇️
+      OS copies the page into RAM.
+                ⬇️
+      Updates the page table.
+                ⬇️
+      Restarts the instruction.
+                ⬇️
+      Now the MMU finds the mapping and execution continues.
+```
+
+---
+
+## 23. 
