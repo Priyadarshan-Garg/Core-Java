@@ -191,7 +191,7 @@ modifies that data without proper synchronization. As a result, the final outcom
 thread execution, making the program's behavior unpredictable.
 Example :
 
-```java
+```textclear
 count =0
 
 Thread A:count++
