@@ -659,3 +659,440 @@ Going from: **Animal → Dog** is _downcasting_.
 example, if Animal a = new Dog(), I can cast it to Dog and access Dog-specific methods. However, the cast is only valid
 if the actual object is really a Dog. If the reference points to a Cat and I cast it to Dog, Java throws a
 ClassCastException at runtime.
+
+
+---
+
+## 32. If downcasting can cause ClassCastException, why does Java allow it at all? Why not simply prevent it at compile time?
+
+Downcasting is allowed because the compiler can verify that the source and target types are compatible in the class
+hierarchy, but it may not know the actual runtime type of the object. The actual type is checked at runtime. If the
+object isn't an instance of the target subclass, Java throws a ClassCastException.
+
+---
+
+## Important Learning:
+
+Main relations
+
+```terminaloutput
+    1. IS-A          → Inheritance
+    2. HAS-A         → Composition / Aggregation
+    3. CAN-DO        → Interface
+    4. USES-A        → Dependency
+```
+
+### Is A -> extends
+
+Dog is an Animal
+
+```java
+class Animal {
+    void eat() {
+    }
+}
+
+class Dog extends Animal {
+    void bark() {
+    }
+}
+```
+
+Examples
+
+```textmate
+    Dog is an Animal
+    Car is a Vehicle
+    Manager is an Employee
+    Circle is a Shape
+    SavingsAccount is an Account
+```
+
+### HAS-A → Object as a field
+
+Car has an Engine. Means Car ain't an engine it has one. One class has a reference to another class as a field.
+
+```java
+class Engine {
+    void start() {
+    }
+}
+
+class Car {
+    private Engine engine;
+
+    void startCar() {
+        engine.start();
+    }
+}
+```
+
+### Composition -> HAS-A relation but child/contained object life depends strongly by parent
+
+```textmate
+    House
+     ├── Room
+     ├── Room
+     └── Room
+```
+
+House gets destroyed then no rooms are left. House owns room.
+
+```java
+class Room {
+}
+
+class House {
+    private final Room room = new Room();
+}
+// or 
+
+class Car {
+    private final Engine engine = new Engine();
+}
+```
+
+Composition = strong ownership.
+
+### Aggregation = weak/shared ownership
+
+```java
+class Student {
+}
+
+class University {
+    private List<Student> students;
+
+    University(List<Student> students) {
+        this.students = students;
+    }
+}
+```
+
+### CAN-DO → Interface
+
+```textmate
+    Bird can fly
+    Airplane can fly
+    Drone can fly
+```
+
+```java
+class Airplane extends Bird {
+    // Doesn't make any sense   
+}
+
+
+interface Flyable {
+    void fly(); // cool
+}
+
+
+class Bird implements Flyable {
+    public void fly() {
+    }
+}
+
+class Airplane implements Flyable {
+    public void fly() {
+    }
+}
+
+class Drone implements Flyable {
+    public void fly() {
+    }
+}
+```
+
+CAN-DO / HAS-A CAPABILITY
+
+### USES-A → Dependency
+
+```java
+class PaymentService {
+
+    void process(PaymentGateway gateway) {
+        gateway.pay();
+    }
+}
+```
+
+PaymentService doesn't have PaymentGateway as field but it simply uses one when performing an operation.
+
+Visual Map:
+
+```textmate
+                 OOP RELATIONSHIPS
+                       │
+        ┌──────────────┼───────────────┐
+        │              │               │
+       IS-A          HAS-A           CAN-DO
+        │              │               │
+     extends       object field     implements
+        │              │               │
+     Dog→Animal      Car→Engine     Bird→Flyable
+        │              │
+        │         ┌────┴────┐
+        │         │         │
+        │    Composition  Aggregation
+        │         │         │
+        │    strong own   weak/shared
+        │    lifecycle    relationship
+        │
+        └───────────────────────────────
+                    +
+                 USES-A
+                    │
+               dependency
+                    │
+          Service → Repository
+```
+
+---
+
+## 33. Which one represents stronger ownership? Why? What happens to the Engine when the Car is destroyed? And which one would you call composition vs aggregation?
+
+```java
+    // Design A
+class Car {
+    private Engine engine = new Engine();
+}
+
+// Design B
+
+class Car {
+    private Engine engine;
+
+    Car(Engine engine) {
+        this.engine = engine;
+    }
+}
+```
+
+Composition represents strong ownership, where the containing object controls the lifecycle of the contained object.
+Aggregation represents a weaker relationship where the contained object can exist independently. In Java, both are
+usually represented using object references; the distinction is primarily about ownership and lifecycle semantics.
+So A is composition and B is aggregation.
+
+---
+
+## 34. Suppose Car has an Engine, but I don't want Car to know which concrete engine implementation it is using. I want to be able to give it a PetrolEngine, DieselEngine, or ElectricEngine. How would you design this in Java?
+
+```java
+interface Engine {
+    void start();
+}
+
+class PetrolEngine implements Engine {
+    public void start() {
+        System.out.println("Petrol engine");
+    }
+}
+
+class ElectricEngine implements Engine {
+    public void start() {
+        System.out.println("Electric engine");
+    }
+}
+
+class Car {
+    private Engine engine;
+
+    Car(Engine engine) {
+        this.engine = engine;
+    }
+
+    void start() {
+        engine.start();
+    }
+
+    public static void main(String[] args) {
+        Car petrolCar = new Car(new PetrolEngine());
+        Car electricCar = new Car(new ElectricEngine());
+    }
+}
+```
+
+---
+
+## 35. Why is e.start() allowed even though Engine is an interface and doesn't contain the actual implementation? And which start() executes?
+
+```java
+interface Engine {
+    void start();
+}
+
+class PetrolEngine implements Engine {
+    public void start() {
+        System.out.println("Petrol");
+    }
+}
+
+class ElectricEngine implements Engine {
+    public void start() {
+        System.out.println("Electric");
+    }
+
+    public static void main(String[] args) {
+        Engine e = new PetrolEngine();
+        e.start();
+    }
+}
+
+```
+
+he compiler checks the reference type and verifies that start() is part of the Engine interface. At runtime, the actual
+object is a PetrolEngine, so dynamic dispatch invokes PetrolEngine's implementation of start().
+
+---
+
+## 36. Why can Sparrow extend Bird and implement Flyable at the same time? What does it inherit from Bird, and what does it get from Flyable?
+
+```java
+interface Flyable {
+    void fly();
+}
+
+abstract class Bird {
+    abstract void eat();
+
+    void breathe() {
+        System.out.println("Breathing");
+    }
+}
+
+class Sparrow extends Bird implements Flyable {
+    @Override
+    void eat() {
+        System.out.println("Eating");
+    }
+
+    @Override
+    public void fly() {
+        System.out.println("Flying");
+    }
+}
+```
+
+Sparrow can extend one class and implement multiple interfaces because Java allows single class inheritance but multiple
+interface implementation. From Bird, Sparrow inherits the concrete breathe() implementation, while it must provide an
+implementation for the abstract eat() method. From Flyable, it gets the contract that it must provide fly(). So Bird
+provides a common base and behaviour, while Flyable represents a capability.
+
+
+---
+
+## 37. What exactly is the reason Java prevents us from creating an object of an abstract class? And if we can't instantiate Bird, why are we allowed to have a Bird reference like:
+
+An abstract class cannot be instantiated because it can contain abstract methods without implementations, so the class
+itself may represent an incomplete abstraction. However, we can use an abstract class as a reference type. Bird b = new
+Sparrow() creates a concrete Sparrow object and stores its reference in a Bird variable, allowing us to use polymorphism
+
+---
+
+## 38. Can an abstract method be private, final, or static in Java? For each one, tell me whether it's allowed and why.
+
+Abstract method means : This class is declaring a method that a concrete subclass must provide an implementation for.
+**Private** is not allowed because A private method is not accessible to subclasses, so a subclass cannot
+override/implement it.
+**Final** Contradiction
+
+* abstract → subclass must override/implement
+* final → subclass cannot override.
+
+**static** methods belong to the class, not the object, and they don't participate in runtime overriding.
+But an abstract method requires a subclass to provide an implementation through overriding
+
+| Combination        | Allowed? | Why                                |
+|--------------------|---------:|------------------------------------|
+| `abstract private` |        ❌ | subclass can't access/implement it |
+| `abstract final`   |        ❌ | must override vs cannot override   |
+| `abstract static`  |        ❌ | static methods aren't overridden   |
+
+---
+
+## 39. Can an abstract class have a constructor? If yes, why would an abstract class need a constructor when we can't create an object of that abstract class?
+
+Yes, an abstract class can have a constructor. We cannot instantiate the abstract class directly, but its constructor is
+invoked when a concrete subclass object is created, through the super() call. The constructor is used to initialise the
+state inherited from the abstract superclass. Constructors execute during object creation, not class loading
+
+Conceptually :
+
+```textmate
+    new Dog()
+       ↓
+    allocate Dog object
+       ↓
+    super()
+       ↓
+    Animal constructor
+       ↓
+    Dog constructor
+```
+
+---
+
+## 40. Why can't a constructor be inherited or overridden like a normal method? And why doesn't a constructor have a return type?
+
+Constructors are not inherited or overridden because they are specifically responsible for initialising objects of their
+own class. A subclass can invoke a superclass constructor using super(), but it doesn't inherit that constructor.
+Constructors also don't have a return type because they are not methods that return a value; they participate in object
+construction and initialisation.
+
+----
+
+## 41. What gets printed, in what order, and why?
+```java
+class A {
+    A() {
+        System.out.println("A");
+    }
+}
+
+class B extends A {
+    B() {
+        System.out.println("B");
+    }
+}
+
+class C extends B {
+    C() {
+        System.out.println("C");
+    }
+}
+```
+The output is A, B, C. When a C object is created, its constructor implicitly calls super(), which invokes the B constructor. The B constructor in turn calls the A constructor. Java initialises the superclass state first, so A's constructor body executes first, followed by B, and finally C.
+
+---
+## 42. What  does this print ?
+```java
+class A {
+    int x = 10;
+
+    A() {
+        print();
+    }
+
+    void print() {
+        System.out.println(x);
+    }
+}
+
+class B extends A {
+    int x = 20;
+
+    B() {
+        print();
+    }
+
+    @Override
+    void print() {
+        System.out.println(x);
+    }
+}
+
+public static void main(String[] args) {
+    new B();
+}
+```

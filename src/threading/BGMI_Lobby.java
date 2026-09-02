@@ -9,7 +9,6 @@ public class BGMI_Lobby {
     public static void joinPlayers(Thread thread, String player) {
         try {
             Random random = new Random();
-
             Thread.sleep(random.nextInt(1, 5) * 1000);
 
             System.out.println("Player number " + player + " with thread number "+ thread.getName() + " has joined");

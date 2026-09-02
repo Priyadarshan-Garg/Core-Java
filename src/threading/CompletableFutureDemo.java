@@ -1,13 +1,13 @@
 package threading;
 
-import org.jetbrains.annotations.NotNull;
+
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class CompletableFutureDemo {
-    @NotNull
+
     public static String fetchProfile() {
         try {
             Thread.sleep(3000);
@@ -23,7 +23,7 @@ public class CompletableFutureDemo {
         }
     }
 
-    @NotNull
+
     public static String fetchStats() {
         try {
             Thread.sleep(2000);
