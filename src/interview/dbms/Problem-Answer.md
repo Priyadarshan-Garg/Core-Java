@@ -515,3 +515,345 @@ ANALYZE before creating indexes in production.
 ---
 
 ## 23. What is the difference between a clustered index and a non-clustered index? And does PostgreSQL actually have a traditional clustered index?
+
+A clustered index means the table's physical row organisation is aligned with the index ordering, which can be
+beneficial for locality and range scans. A non-clustered or secondary index is a separate structure that points to the
+table rows without determining their permanent physical order. PostgreSQL does not have a traditional permanently
+maintained clustered index like some other databases. It has the CLUSTER command, which physically reorganises a table
+according to an index, but that ordering is not automatically maintained after subsequent modifications.
+
+---
+
+## 24. But PostgreSQL chooses a Sequential Scan instead of using the index. Is PostgreSQL doing something wrong? Why might a sequential scan actually be faster?
+
+```textmate
+You have an index on employees(salary). You run
+   SELECT *
+   FROM employees
+   WHERE salary > 1000;
+```
+
+No, PostgreSQL is not necessarily doing something wrong. The optimizer estimates the cost of different execution plans.
+If the predicate matches a large portion of the table, an index scan may require fetching many table rows, potentially
+causing expensive random I/O. A sequential scan can be cheaper because it reads the table sequentially. PostgreSQL
+therefore chooses the plan with the lower estimated cost
+
+----
+
+## 25. Why might PostgreSQL still choose a Sequential Scan even though there is an index exactly on salary?
+
+```textmate
+CREATE INDEX idx_salary ON employees(salary);
+SELECT *
+FROM employees
+WHERE salary = 80000;
+```
+
+Having an index does not guarantee that PostgreSQL will use it. The optimizer estimates the cost of different plans
+using table statistics. If salary = 80000 matches a large percentage of rows, fetching those rows through the index may
+be more expensive than a sequential scan. For a highly selective condition, however, the index is usually beneficial.
+
+salary > 1000 → naturally may match many rows.
+salary = 80000 → could be highly selective or could match many rows depending on the data distribution.
+---
+
+## 26. What does EXPLAIN do in PostgreSQL? And what is the difference between:
+
+```textmate
+EXPLAIN SELECT ...
+     &
+EXPLAIN ANALYZE SELECT ...
+```
+
+EXPLAIN shows PostgreSQL's estimated execution plan without executing the query. EXPLAIN ANALYZE actually executes the
+query and reports the real execution statistics, such as actual time and actual rows, allowing us to compare estimates
+with reality.
+
+EXPLAIN ANALYZE modifies data if the query itself is an INSERT, UPDATE, or DELETE, because it actually runs the query.
+
+---
+
+## 27. You run EXPLAIN and PostgreSQL estimates 100 rows, but EXPLAIN ANALYZE shows that actually 100,000 rows were returned.
+
+Why is this mismatch a problem, and what could cause it?
+
+```textmate
+SELECT *
+FROM employees
+WHERE department_id = 10;
+```
+
+A large difference between estimated and actual rows means the optimizer has inaccurate cardinality estimates. Since
+PostgreSQL uses these estimates to choose an execution plan, a bad estimate can lead to a poor plan, such as choosing an
+index scan when a sequential scan would be faster. Stale statistics are a common cause, so running ANALYZE can help.
+
+```textmate
+Planner thinks:
+department_id = 10 → only 100 rows
+                    ↓
+              Index Scan looks cheap
+
+Reality:
+department_id = 10 → 100,000 rows
+                    ↓
+        Sequential Scan may have been better
+```
+
+---
+
+## 28. What is a database view?
+
+A view is a virtual table defined by a SQL query. A normal view does not store a separate copy of the query result; it
+stores the query definition and presents its result as a table-like interface. A materialized view, on the other hand,
+stores the query result physically and needs to be refreshed
+
+```textmate
+Normal View
+→ stores definition
+→ result generated when queried
+
+Materialized View
+→ stores result
+→ must be refreshed to reflect changes
+```
+
+---
+
+## 29. Will this update the original employees table? Why or why not?
+
+```textmate
+CREATE VIEW engineering_employees AS
+SELECT id, name, salary
+FROM employees
+WHERE department_id = 10;
+
+Now someone runs:
+
+UPDATE engineering_employees
+SET salary = salary * 1.10;
+```
+
+A normal view does not contain a separate copy of the data. It is a table-like interface over an underlying query. If
+the view is updatable, an UPDATE issued against the view can modify the underlying base table, and subsequent queries on
+the view reflect those changes.
+
+
+---
+
+## 30. What's the difference between DELETE, TRUNCATE, and DROP in SQL?
+
+DELETE removes rows and can selectively remove them using a WHERE clause. TRUNCATE removes all rows while preserving the
+table structure. DROP removes the table itself, including its definition and data
+
+```textmate
+DELETE    → rows
+TRUNCATE  → all rows
+DROP      → table/object itself
+```
+
+---
+
+## 31. What's the difference between WHERE and HAVING? And specifically, why can't we normally use an aggregate condition like COUNT(*) > 5 in WHERE?
+
+Working :
+
+```textmate
+employees
+   ↓
+WHERE salary > 70000     ← filter individual rows
+   ↓
+GROUP BY department_id   ← make groups
+   ↓
+COUNT(*)                 ← aggregate each group
+   ↓
+HAVING COUNT(*) > 5      ← filter groups
+```
+
+WHERE filters individual rows before grouping and aggregation. HAVING filters groups after GROUP BY and therefore can
+use aggregate functions such as COUNT and AVG. COUNT(*) cannot normally be used in WHERE because aggregation has not
+happened yet at the WHERE stage.
+
+```textmate
+COUNT(*)       -- counts every row
+COUNT(salary)  -- counts only rows where salary IS NOT NULL
+```
+
+---
+
+## 32. In what logical order does SQL process these clauses? Tell me the order of: SELECT, FROM, WHERE, GROUP BY, HAVING.
+
+```textmate
+SELECT department_id, COUNT(*)
+FROM employees
+WHERE salary > 50000
+GROUP BY department_id
+HAVING COUNT(*) > 5;
+```
+
+```textmate
+FROM
+  ↓
+WHERE
+  ↓
+GROUP BY
+  ↓
+HAVING
+  ↓
+SELECT
+```
+
+1. FROM
+   Get rows from employees.
+
+2. WHERE
+   Remove employees whose salary isn't > 50000.
+
+3. GROUP BY
+   Put the remaining employees into department groups.
+
+4. HAVING
+   Keep only departments whose group has more than 5 employees.
+
+5. SELECT
+   Finally produce department_id and COUNT(*).
+
+That's also why: WHERE COUNT(*) > 5 doesn't work: COUNT hasn't been calculated when WHERE is evaluated.
+
+---
+
+## 33. Why this query fails ?
+
+```textmate
+SELECT department_id, COUNT(*)
+FROM employees
+GROUP BY department_id
+WHERE salary > 50000;
+```
+
+Correct : Where comes before grouping.
+
+```textmate
+SELECT department_id, COUNT(*)
+FROM employees
+WHERE salary > 50000
+GROUP BY department_id;
+```
+
+---
+
+## 35. What's the difference between these two?
+
+```textmate
+COUNT(*)
+
+and
+
+COUNT(salary)
+```
+
+Answer :
+
+```textmate
+COUNT(*)       → counts every row
+COUNT(salary)  → counts only rows where salary IS NOT NULL
+```
+
+---
+
+## 36. And if 100 employees belong to only 5 different departments, what will each return?
+
+```textmate
+COUNT(*) 
+    &
+COUNT(DISTINCT department_id)
+```
+
+COUNT(*) → 100 because there are 100 rows/employees.
+COUNT(DISTINCT department_id) → 5 because only 5 unique department IDs exist.
+
+---
+
+## 37. What's the difference between UNION and UNION ALL?
+
+UNION combines the result sets of two queries and removes duplicate rows, whereas UNION ALL combines them while
+preserving duplicates. UNION ALL is generally faster because it doesn't need duplicate elimination.
+
+---
+
+## 38. What are the requirements for two queries to be combined using UNION?
+
+```textmate
+SELECT id, name FROM employees
+UNION
+SELECT id FROM departments;
+```
+
+No it cannot..
+
+```textmate
+UNION
+  ↓
+same number of columns
+  +
+compatible data types
+  +
+results vertically combine
+```
+
+---
+
+# Concept :
+
+**Inner Join**
+
+```textmate
+employees              departments
+---------              -----------
+A → IT                 IT
+B → HR                 HR
+C → NULL
+
+SELECT *
+FROM employees e
+INNER JOIN departments d
+    ON e.department_id = d.id;
+```
+
+No C because only gives matching rows.
+
+```
+INNER JOIN
+     ↓
+Only common/matching rows
+```
+
+INNER JOIN returns only rows where the join condition matches in both tables. LEFT JOIN returns all rows from the left
+table and matching rows from the right table; if there is no match, the right-side columns contain NULL
+```
+Result :
+   A → IT
+   B → HR
+   C → NULL
+
+
+LEFT JOIN
+    ↓
+Left table ki EVERY row
+    +
+Matching right-table data
+    +
+No match → NULL
+```
+```textmate
+Important :
+A LEFT JOIN B
+
+→ Keep ALL rows of A
+→ Bring matching rows from B
+→ No match in B = NULL
+```
+```textmate
+A RIGHT JOIN B
+       ≡
+B LEFT JOIN A
+```
