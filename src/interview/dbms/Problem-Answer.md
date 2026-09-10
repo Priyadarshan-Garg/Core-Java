@@ -829,6 +829,7 @@ Only common/matching rows
 
 INNER JOIN returns only rows where the join condition matches in both tables. LEFT JOIN returns all rows from the left
 table and matching rows from the right table; if there is no match, the right-side columns contain NULL
+
 ```
 Result :
    A → IT
@@ -844,6 +845,7 @@ Matching right-table data
     +
 No match → NULL
 ```
+
 ```textmate
 Important :
 A LEFT JOIN B
@@ -852,8 +854,751 @@ A LEFT JOIN B
 → Bring matching rows from B
 → No match in B = NULL
 ```
+
 ```textmate
 A RIGHT JOIN B
        ≡
 B LEFT JOIN A
 ```
+
+---
+
+## 39 . What will this query return?
+
+```textmate
+SELECT e.name, d.name
+FROM employees e
+FULL OUTER JOIN departments d
+    ON e.department_id = d.id;
+```
+
+```textmate
+   employees
+   1 | A | 10
+   2 | B | 20
+   3 | C | NULL
+   
+   departments
+   10 | IT
+   20 | HR
+   30 | Sales
+```
+
+* A matched IT ✅
+* B matched HR ✅
+* C has no department → preserved because employee side exists ✅
+* Sales has no employee → preserved because department side exists ✅
+
+---
+
+## 40. Write a SQL query to find departments that have no employees.
+
+```textmate
+employees
+-------------------------
+id | name | department_id
+1  | A    | 10
+2  | B    | 20
+3  | C    | NULL
+
+departments
+----------------
+id | name
+10 | IT
+20 | HR
+30 | Sales
+```
+
+I would use a LEFT JOIN because I need to preserve all departments. Departments without employees will have NULL values
+on the employee side, so I can filter them using WHERE e.id IS NULL.
+
+```textmate
+SELECT d.name
+FROM departments d
+LEFT JOIN employees e
+    ON e.department_id = d.id
+WHERE e.id IS NULL;
+```
+
+Flow :
+
+```textmate
+departments
+    ↓
+LEFT JOIN employees
+    ↓
+department with no employee
+    ↓
+employee columns = NULL
+    ↓
+WHERE e.id IS NULL
+    ↓
+Sales
+```
+
+---
+
+## 41. Are they euqivalent or different ?
+
+```textmate
+-- A
+SELECT d.name
+FROM departments d
+LEFT JOIN employees e
+    ON e.department_id = d.id
+WHERE e.salary > 50000;
+
+-- B
+SELECT d.name
+FROM departments d
+LEFT JOIN employees e
+    ON e.department_id = d.id
+    AND e.salary > 50000;
+```
+
+They are not equivalent with a LEFT JOIN. A condition in ON controls which right-side rows match while preserving
+unmatched left-side rows. A condition in WHERE filters the joined result afterward, and if it rejects NULL values from
+the right side, it can effectively turn the LEFT JOIN into an INNER JOIN.
+
+```textmate
+WHERE condition
+→ filters the final result
+
+ON condition
+→ determines which rows match during the JOIN
+```
+
+---
+
+## 42. Find the number of employees in each department, including departments that have zero employees.
+
+```textmate
+    Correct Query
+SELECT d.name, COUNT(e.id) AS employee_count
+FROM departments d
+LEFT JOIN employees e
+    ON e.department_id = d.id
+GROUP BY d.id, d.name;
+```
+
+Whenever question says: "Include things having zero matching records"
+Think :
+
+```textmate
+LEFT JOIN
+   +
+COUNT(right_table.id)
+```
+
+---
+
+## 43. Why do we write: COUNT(e.id) instead of: COUNT(*)
+
+```textmate
+SELECT d.name, COUNT(e.id)
+FROM departments d
+LEFT JOIN employees e
+    ON e.department_id = d.id
+GROUP BY d.id, d.name;
+```
+
+Because COUNT(*) counts the row itself, while COUNT(e.id) counts only non-NULL e.id values.
+
+With LEFT JOIN, a department with no employees still produces a joined row:
+Sales | NULL
+Therefore:
+
+```textmate
+COUNT(*)      → 1
+COUNT(e.id)   → 0
+```
+
+---
+
+## 45. Suppose we want departments having more than 5 employees. Which is correct and why ?
+
+```textmate
+WHERE COUNT(e.id) > 5
+
+HAVING COUNT(e.id) > 5
+```
+
+HAVING is used for conditions involving aggregate functions because it filters groups after aggregation. WHERE filters
+individual rows before grouping, so an aggregate such as COUNT cannot normally be used there.
+
+---
+
+## 46. What is the difference between IN and EXISTS? What IN is doing here ?
+
+```textmate
+SELECT name
+FROM employees
+WHERE department_id IN (
+    SELECT id
+    FROM departments
+    WHERE location = 'Delhi'
+);
+```
+
+Suppose inner query returns :
+10
+20
+30
+Then outer query :
+
+```textmate
+employee.department_id ∈ {10,20,30} ?
+        ↓
+       YES → return employee
+       NO  → don't return
+```
+
+Mental Model :
+
+```textmate
+IN
+→ Is this value inside this set?
+
+EXISTS
+→ For this outer row, does a matching inner row exist?
+```
+
+----
+
+## 47. Suppose departments has 10,000 rows, but for your query you only care whether a matching department exists for each employee. Why might EXISTS be preferable to IN in some situations?
+
+EXISTS is useful when I only need to know whether at least one matching row exists. It can stop once a match is
+established. IN expresses membership in a set of values. However, I wouldn't claim EXISTS is always faster because the
+optimizer may transform either query; I'd compare their execution plans for the specific workload.
+
+
+---
+
+## 48. What's the difference between a correlated subquery and a non-correlated subquery? Is the inner query correlated with the outer query? Why or why not?
+
+```textmate
+SELECT e.name
+FROM employees e
+WHERE e.salary > (
+    SELECT AVG(salary)
+    FROM employees
+);
+```
+
+This is non correlated query because inner can run independently :
+
+```textmate
+Inner query
+    ↓
+average salary
+    ↓
+Outer query compares every employee against it
+```
+
+But when inner query references a field from outer query then it is correlated;
+
+---
+
+## 49. What employees is this query trying to find?
+
+```textmate
+SELECT e.name
+FROM employees e
+WHERE e.salary > (
+    SELECT AVG(e2.salary)
+    FROM employees e2
+    WHERE e2.department_id = e.department_id
+);
+```
+
+This is a correlated subquery because the inner query references e.department_id from the outer query. It finds
+employees whose salary is greater than the average salary of their respective department.
+
+---
+
+## 50.Can this correlated query be rewritten using a JOIN instead of a correlated subquery?
+
+```textmate
+Employees ── department_id ──→ Department averages
+   ↓                              ↓
+salary                      avg_salary
+   └──────── compare ─────────────┘
+```
+
+```textmate
+SELECT e.name
+FROM employees e
+JOIN (
+    SELECT department_id, AVG(salary) AS avg_salary
+    FROM employees
+    GROUP BY department_id
+) d
+    ON e.department_id = d.department_id
+WHERE e.salary > d.avg_salary;
+```
+
+---
+
+## 51. What's the difference between DELETE with a WHERE condition and ON DELETE CASCADE on a foreign key? key 10 is deleted, what happens when the FK is defined with ON DELETE CASCADE?
+
+```textmate
+departments
+10 | IT
+
+employees
+1 | A | 10
+2 | B | 10
+```
+
+CASCADE doesn't mean "delete this value everywhere." It means deleting a referenced parent row automatically deletes the
+rows in the child table that reference it.
+A DELETE statement removes rows from the table targeted by the statement. ON DELETE CASCADE is a foreign-key action that
+automatically deletes referencing child rows when the referenced parent row is deleted.
+
+
+---
+
+## 52. Delete on cascade V/S Delete on set NULL ?
+
+ON DELETE CASCADE deletes the referencing child rows when the parent is deleted. ON DELETE SET NULL preserves the child
+rows but sets their foreign-key column to NULL, provided that column allows NULL.
+
+```textmate
+CASCADE
+→ parent deleted
+→ child rows deleted
+
+SET NULL
+→ parent deleted
+→ child rows preserved
+→ FK in child becomes NULL
+```
+
+---
+
+## 53. What is a database constraint?
+
+A constraint is a rule enforced by the database to restrict invalid data and maintain data integrity. Common constraints
+include PRIMARY KEY, FOREIGN KEY, UNIQUE, NOT NULL, and CHECK.
+
+```textmate
+PRIMARY KEY → row ko uniquely identify + NULL nahi
+FOREIGN KEY → parent-child relationship / referential integrity
+UNIQUE      → duplicate values prevent
+NOT NULL    → NULL prevent
+CHECK       → custom condition enforce
+```
+
+---
+
+## 54. What is the difference between a PRIMARY KEY constraint and a FOREIGN KEY constraint?
+
+A primary key uniquely identifies each row in a table and cannot contain NULL. A foreign key is a column or set of
+columns in a child table that references a primary key or suitable unique key in a parent table, establishing
+referential integrity between the tables.
+
+---
+
+## 55. What is a composite key? Why do we need them ?
+
+A composite key is a key consisting of two or more columns used together to uniquely identify a row. We use it when no
+single column can uniquely identify the row. For example, in an Enrollment table, (student_id, course_id) can uniquely
+identify a student's enrollment in a particular course.
+
+---
+
+## 56. What is a surrogate key? Why do we use it like : Why don't use email as key
+
+```textmate
+id SERIAL PRIMARY KEY
+```
+
+A surrogate key is an artificial identifier generated by the system, usually used as a primary key. It has no business
+meaning. We may prefer it over a natural key such as email because business attributes can change, while the surrogate
+identifier remains stable. The natural attribute can still have a UNIQUE constraint.
+
+```textmate
+Natural key
+→ real-world meaningful value
+→ email, Aadhaar-like business identifier, ISBN etc.
+
+Surrogate key
+→ artificial identifier
+→ 1, 2, 3...
+→ no business meaning
+```
+
+---
+
+## 57. How many candidate keys does this table have, and which one would you choose as the primary key?
+
+```
+id
+email
+phone
+```
+
+If id, email, and phone are all individually unique and non-null, each is a candidate key. We can choose id as the
+primary key because it is a stable surrogate identifier, while email and phone can change. The other candidate keys can
+be enforced with UNIQUE constraints.
+
+---
+
+## 58. What's the difference between a candidate key and a super key? Give example.
+
+Suppose Table is like :
+
+```textmate
+Student
+----------------
+student_id | email | name
+1          | a@x   | Amit
+2          | b@x   | Rahul
+```
+
+**Super Key** : Any set of columns that can uniquely identify a row.
+
+```textmate
+{student_id}              ✅
+{student_id, name}        ✅
+{student_id, email}       ✅
+{student_id, email, name} ✅
+```
+
+**Candidate key** A minimal super key. Meaning: remove any attribute and it should stop being unique.
+
+```textmate
+{student_id}              → candidate key ✅
+{student_id, email}       → NOT candidate key ❌
+```
+
+Relationshp :
+
+```textmate
+Super Keys
+┌──────────────────────────┐
+│ {id}                     │
+│ {id,email}               │
+│ {id,name}                │
+│ {id,email,name}          │
+└──────────────────────────┘
+          ↓ remove
+      unnecessary
+       attributes
+          ↓
+Candidate Keys
+┌──────────────────────────┐
+│ {id}                     │
+└──────────────────────────┘
+```
+
+---
+
+# Concept :
+
+```textmate
+3NF:
+X → A
+↓
+X superkey?              YES → okay
+                         NO
+A prime attribute?       YES → possibly okay
+                         NO  → violation
+
+
+BCNF:
+X → A
+↓
+X superkey?
+YES → okay
+NO  → violation
+```
+
+Jo bhi kisi aur ko determine kare, woh khud powerful enough hona chahiye to uniquely identify a row. Means :
+Determinant → must be → Superkey
+Example :
+
+```textmate
+R(Student, Course, Professor)
+
+(Student, Course) → Professor
+Professor → Course
+```
+
+FD 1 :
+Student + Course = candidate/superkey.
+FD 2 :
+Professor → Course
+Professor alone row uniquely identify nahi karta. ❌ Professor is not superkey.
+
+A relation is in BCNF if, for every non-trivial functional dependency X → Y, X is a superkey. BCNF is stricter than 3NF
+because it does not allow a non-superkey determinant, even in cases that may satisfy 3NF
+
+So relation is not in BCNF
+
+----
+
+## 59. A is PK ? is it in BCNF ? which determinant should you check?
+
+```textmate
+R(A, B, C)
+
+A → B
+B → C
+```
+
+A → B
+A primary key hai → therefore superkey hai. ✅ No BCNF violation.
+B → C
+B determinant hai, but B superkey nahi hai. ❌ BCNF violation.
+
+B is a determinant but not a superkey.
+
+---
+
+## 60. Is this relation in 3NF? Is it in BCNF?
+
+```textmate
+R(Student, Course, Professor)
+
+Candidate Key : (Student, Course), (Student, Professor)
+
+Professor → Course
+```
+
+**Prime Attribute** : Jo attribute kisi bhi candidate key ka part ho, usse prime attribute kehte hain.
+Toh :
+
+```textmate
+Student    → prime ✅
+Course     → prime ✅
+Professor  → prime ✅
+
+
+Professor → Course
+
+Professor = prime attribute ✅
+Professor = superkey ❌
+```
+
+So it's not in BCNF because prof is not a super key.
+For 3NF: determinant superkey OR dependent attribute is prime.
+
+```textmate
+Professor → Course
+              ↑
+          prime attribute
+```
+
+---
+
+## 61. Is B a prime attribute? Is B a superkey? And therefore is this relation in 3NF / BCNF?
+
+```textmate
+R(A, B, C)
+Candidate Key:
+   (A, B)
+   (A, C)
+FD :
+   B → C
+```
+
+```textmate
+Primes :
+A → prime
+B → prime
+C → prime
+```
+
+❌ B is not a superkey. BCNF: Every determinant must be a superkey. SO it's not in BCNF. But C is prime Attribute then
+it's 3NF.
+
+---
+
+## 62. If T1 has not committed yet, should T2 be allowed to see T1's updated balance? What anomaly would occur if it could
+
+```textmate
+T1:
+UPDATE accounts
+SET balance = balance - 100
+WHERE id = 1;
+
+T2:
+SELECT balance
+FROM accounts
+WHERE id = 1;
+```
+
+A dirty read occurs when one transaction reads data written by another transaction before that transaction commits. If
+the writing transaction later rolls back, the reader has observed data that was never committed.
+
+```textmate
+Initial balance = 1000
+
+T1: balance = 900   (not committed)
+
+T2: reads 900       ← dirty read ❌
+
+T1: ROLLBACK
+
+Actual balance = 1000
+```
+
+---
+
+## 63. Which isolation level prevents dirty reads but still allows non-repeatable reads?
+
+```textmate
+READ UNCOMMITTED
+READ COMMITTED
+REPEATABLE READ
+SERIALIZABLE
+```
+
+Anomalies = Problems :
+
+```textmate
+Dirty Read
+Non-repeatable Read
+Phantom Read
+```
+
+Isolation Levels = database protection
+
+```textmate
+READ UNCOMMITTED
+READ COMMITTED
+REPEATABLE READ
+SERIALIZABLE
+```
+
+| Isolation Level  | Dirty Read  | Non-repeatable | Phantom                       |
+|------------------|-------------|----------------|-------------------------------|
+| READ UNCOMMITTED | ❌ Allowed   | ❌ Allowed      | ❌ Allowed                     |
+| READ COMMITTED   | ✅ Prevented | ❌ Allowed      | ❌ Allowed                     |
+| REPEATABLE READ  | ✅ Prevented | ✅ Prevented    | depends on DB/implementation* |
+| SERIALIZABLE     | ✅ Prevented | ✅ Prevented    | ✅ Prevented                   |
+
+----
+
+## 65. Then T1 runs the same SELECT again and gets 900. What anomaly is this called?
+
+```textmate
+T1 :
+SELECT balance FROM accounts WHERE id = 1;
+-- gets 1000
+
+T2 :
+UPDATE accounts SET balance = 900 WHERE id = 1;
+COMMIT;
+```
+
+Same query, same row, but different value.
+
+```textmate
+T1 → read → 1000
+          ↓
+T2 → UPDATE → 900 → COMMIT
+          ↓
+T1 → same row read → 900
+```
+
+Non-repeatable read — a row read twice by the same transaction returns different committed values because another
+transaction modified it between the reads.
+**Distinction**
+
+```textmate
+Dirty read
+→ uncommitted data dikha
+
+Non-repeatable read
+→ same row, different value
+
+Phantom read
+→ same condition, different set of rows
+```
+
+----
+
+## 66. Which isolation level prevents dirty reads but allows non-repeatable reads? And which isolation level prevents both dirty reads and non-repeatable reads?
+
+```textmate
+Answer :
+READ COMMITTED
+→ Dirty read ❌
+→ Non-repeatable read ✅ possible
+
+REPEATABLE READ
+→ Dirty read ❌
+→ Non-repeatable read ❌
+```
+
+---
+
+## 67. What is a transaction savepoint? If UPDATE C fails, can you undo only the changes after the savepoint while keeping UPDATE A? How?
+
+```textmate
+UPDATE A; --- Save point is done here
+UPDATE B;
+UPDATE C;
+```
+
+**SAVEPOINT** = transaction-level rollback marker
+
+**CHECKPOINT** = database recovery mechanism
+A savepoint is a marker within a transaction that allows us to roll back part of the transaction without rolling back
+the entire transaction. ROLLBACK TO SAVEPOINT undoes changes made after that savepoint while keeping earlier changes
+
+```textmate
+UPDATE A;
+
+SAVEPOINT sp1;
+
+UPDATE B;
+UPDATE C;
+```
+
+If C fails : ROLLBACK TO SAVEPOINT sp1;
+
+---
+
+## 68. After the COMMIT, which UPDATE remains applied — the first, the second, or both?
+
+```textmate
+BEGIN;
+
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+
+SAVEPOINT s1;
+
+UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+
+ROLLBACK TO SAVEPOINT s1;
+
+COMMIT;
+```
+
+ROLLBACK TO SAVEPOINT ka matlab ye nahi ki hum "save nahi kar rahe"; it means transaction ke andar savepoint ke baad ki
+changes undo kar rahe hain.
+```textmate
+BEGIN
+
+UPDATE account 1
+       ↓
+SAVEPOINT s1
+       ↓
+UPDATE account 2
+       ↓
+ROLLBACK TO s1
+       ↓
+UPDATE account 2 is undone
+       ↓
+COMMIT
+
+
+Account 1 → -100 ✅
+Account 2 → +100 ❌
+```
+
+---
+## 69. What is a dirty page in a database?
